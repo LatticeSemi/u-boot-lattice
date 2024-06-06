@@ -95,4 +95,10 @@ config DMA_LEGACY
 
 source "drivers/dma/ti/Kconfig"
 
+config LATTICE_SGDMA
+	bool "Enable Lattice SGDMA driver"
+	help
+	  Enable support for Lattice SGDMA driver. It enables SGDMA for TSE
+	  data packets transfer between/to the memory.
+
 endmenu # menu "DMA Support"
