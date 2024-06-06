@@ -1,0 +1,106 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2024 Lattice Semiconductor Corp
+ * Author: WeiLiang Lim<weiliang.lim@latticesemi.com>
+ */
+
+/dts-v1/;
+#include <config.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "lattice,riscv";
+	model = "lattice,riscv";
+
+	aliases {
+		serial0 = &uart0;
+		timer0 = &clint;
+		spi0 = &spi0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		tick-timer = "timer0";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		timebase-frequency = <100000000>;
+		bootph-pre-ram;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "riscv";
+			riscv,isa = "rv32imc";
+			clock-frequency = <100000000>;
+			reg = <0>;
+			i-cache-size = <0x1000>;
+			i-cache-line-size = <32>;
+			d-cache-size = <0x1000>;
+			d-cache-line-size = <32>;
+			bootph-pre-ram;
+
+			intc0: interrupt-controller {
+				compatible = "riscv,cpu-intc";
+				#interrupt-cells = <1>;
+				interrupt-controller;
+			};
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+		bootph-pre-ram;
+	};
+
+	clint: clint@f2000000 {
+		compatible = "riscv,clint0";
+		clock-frequency = <32000>;
+		reg = <0xf2000000 0x10000>;
+		bootph-pre-ram;
+	};
+
+	uart0: serial@10090000 {
+		compatible = "lattice,uart";
+		reg = <0x10090000 0x100>;
+		status = "disabled";
+		bootph-pre-ram;
+	};
+
+	spi0: qspi@10940000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "lattice,lattice-qspi";
+		reg = <0x10094000 0x1000>;
+		status = "disabled";
+		bootph-pre-ram;
+
+		nor-flash@0 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "jedec,spi-nor";
+		};
+	};
+
+	gpio0: gpio@10000000 {
+		compatible = "lattice,lattice-gpio-1.0";
+		reg = <0x10000000 0x1000>;
+		status = "disabled";
+		bootph-pre-ram;
+	};
+
+	ethernet0: ethernet@0x10001000 {
+		compatible = "lattice,lattice-tse-1.5.0";
+		reg = <0x10001000 0x1000>;
+		sgdma_base = <0x10093000>;
+		mm2s_bd_address = <0x90010000>;
+		mm2s_address = <0x90000000>;
+		s2mm_bd_address = <0x90020000>;
+		s2mm_address = <0x90006000>;
+		status = "disabled";
+		bootph-pre-ram;
+	};
+};

@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2024, Lattice Semiconductor Corp
+ */
+
+/dts-v1/;
+
+#include "lattice_riscv.dtsi"
+
+/ {
+	config {
+		bootph-pre-ram;
+		u-boot,spl-payload-flash-offset = <0x21a0000>;
+		u-boot,spl-payload-ram-offset = <0xa0000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&ethernet0 {
+	status = "okay";
+};
