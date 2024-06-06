@@ -185,6 +185,14 @@ config ALTERA_QSPI
 	  NOR flash to parallel flash interface. Please find details on the
 	  "Embedded Peripherals IP User Guide" of Altera.
 
+config LATTICE_QSPI
+	bool "Lattice Generic Quad SPI Controller"
+	depends on DM_MTD
+	select USE_SYS_MAX_FLASH_BANKS
+	help
+	  This enables access to Lattice flash chips using the
+	  Lattice Quad SPI Controller.
+
 config RENESAS_RPC_HF
 	bool "Renesas RCar Gen3 RPC HyperFlash driver"
 	depends on RCAR_GEN3 && DM_MTD

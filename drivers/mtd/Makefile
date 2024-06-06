@@ -8,6 +8,7 @@ mtd-$(CONFIG_DM_MTD) += mtd-uclass.o
 mtd-$(CONFIG_MTD_PARTITIONS) += mtdpart.o
 mtd-$(CONFIG_MTD_CONCAT) += mtdconcat.o
 mtd-$(CONFIG_ALTERA_QSPI) += altera_qspi.o
+mtd-$(CONFIG_LATTICE_QSPI) += lattice_qspi.o
 mtd-$(CONFIG_FLASH_CFI_DRIVER) += cfi_flash.o
 mtd-$(CONFIG_FLASH_CFI_MTD) += cfi_mtd.o
 mtd-$(CONFIG_FLASH_CFI_LEGACY) += jedec_flash.o
