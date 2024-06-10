@@ -98,6 +98,7 @@ obj-$(CONFIG_XILINX_AXIEMAC) += xilinx_axi_emac.o
 obj-$(CONFIG_XILINX_AXIMRMAC) += xilinx_axi_mrmac.o
 obj-$(CONFIG_XILINX_EMACLITE) += xilinx_emaclite.o
 obj-$(CONFIG_ZYNQ_GEM) += zynq_gem.o
+obj-$(CONFIG_LATTICE_TSE) += lattice_tse.o
 obj-y += mscc_eswitch/
 obj-y += phy/
 obj-y += qe/
