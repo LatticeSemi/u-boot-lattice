@@ -600,6 +600,11 @@ config CMD_ZBOOT
 	  booting both 32- and 64-bit kernels, as well as secure boot.
 	  Documentation is available in doc/uImage.FIT/x86-fit-boot.txt
 
+config CRC_CHECKING
+	bool "CRC ccitt checking"
+	help
+	  Enable to perform CRC checking.
+
 endmenu
 
 menu "Environment commands"

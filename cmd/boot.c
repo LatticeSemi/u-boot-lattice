@@ -23,13 +23,28 @@ unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
 
 static int do_go(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	ulong	addr, rc;
+	ulong	rc, length;
 	int     rcode = 0;
+	u16     calculated_crc, read_crc;
+	u8      *addr = NULL;
 
-	if (argc < 2)
+	if (argc < 3)
 		return CMD_RET_USAGE;
 
 	addr = hextoul(argv[1], NULL);
+	length = hextoul(argv[2], NULL);
+
+#if IS_ENABLED(CONFIG_CRC_CHECKING)
+	printf ("## Checking CRC\n");
+	read_crc = (addr[length - 2] << 8)  | addr[length - 1];
+	calculated_crc = crc16_ccitt(0x1D0F, addr, length - 2);
+	if (read_crc != calculated_crc) {
+		printf("Bad firmware CRC: file 0x%04x calculated 0x%04x\n",
+			read_crc, calculated_crc);
+	} else {
+		printf("CRC pass: 0x%04x\n", calculated_crc);
+	}
+#endif
 
 	printf ("## Starting application at 0x%08lX ...\n", addr);
 	flush();
@@ -49,8 +64,9 @@ static int do_go(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 U_BOOT_CMD(
 	go, CONFIG_SYS_MAXARGS, 1,	do_go,
-	"start application at address 'addr'",
-	"addr [arg ...]\n    - start application at address 'addr'\n"
+	"start application at address 'addr' with 'length'",
+	"addr length [arg ...]\n    - start application at address 'addr' with\n"
+	"      'length' as number of bytes to read\n"
 	"      passing 'arg' as arguments"
 );
 
