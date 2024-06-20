@@ -24,7 +24,6 @@ config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
 	select GENERIC_RISCV
 	select SUPPORT_SPL
-	imply SPL_RAM_SUPPORT
 	imply CMD_CPU
 	imply CMD_DHCP
 	imply CMD_GPIO
