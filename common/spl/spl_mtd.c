@@ -41,14 +41,14 @@ static ulong spl_mtd_fit_read(struct spl_load_info *load, ulong sector,
 			      ulong count, void *buf)
 {
 	ulong ret;
-	size_t *retlen;
+	size_t retlen;
 	struct mtd_info *mtd;
 
 	mtd = get_mtd_dev_by_name("lattice_qspi");
 	if (!mtd)
 		return -ENODEV;
 
-	ret = mtd_read(mtd, (loff_t)sector, (size_t)count, retlen, buf);
+	ret = mtd_read(mtd, (loff_t)sector, (size_t)count, &retlen, buf);
 	if (!ret)
 		return count;
 	else
@@ -63,7 +63,7 @@ static int spl_mtd_load_image(struct spl_image_info *spl_image,
 	struct legacy_img_hdr *header;
 	struct mtd_info *mtd;
 	unsigned int *buf;
-	size_t *retlen;
+	size_t retlen;
 
 	mtd = get_mtd_dev_by_name("lattice_qspi");
 	if (!mtd)
@@ -84,7 +84,7 @@ static int spl_mtd_load_image(struct spl_image_info *spl_image,
 
 	/* Load u-boot, mkimage header is 64 bytes. */
 	err = mtd_read(mtd, (loff_t)payload_offs, (size_t)sizeof(*header),
-		       retlen, (void *)buf);
+				    &retlen, (void *)buf);
 	if (err) {
 		debug("%s: Failed to read from SPI flash (err=%d)\n",
 		      __func__, err);
@@ -96,8 +96,9 @@ static int spl_mtd_load_image(struct spl_image_info *spl_image,
 		u32 size = roundup(fdt_totalsize(header), 4);
 
 		err = mtd_read(mtd, (loff_t)payload_offs,
-			       (size_t)size, retlen,
-			       map_sysmem(CONFIG_SYS_LOAD_ADDR, size));
+					    (size_t)size, &retlen,
+					    map_sysmem(CONFIG_SYS_LOAD_ADDR,
+							size));
 		if (err)
 			return err;
 		err = spl_parse_image_header(spl_image, bootdev,
@@ -128,9 +129,9 @@ static int spl_mtd_load_image(struct spl_image_info *spl_image,
 			if (err)
 				return err;
 			err = mtd_read(mtd, (loff_t)payload_offs + spl_image->offset,
-				       (size_t)spl_image->size, retlen,
-				       map_sysmem(spl_image->load_addr,
-						  spl_image->size));
+					     (size_t)spl_image->size, &retlen,
+					     map_sysmem(spl_image->load_addr,
+							spl_image->size));
 		}
 
 	return err;
