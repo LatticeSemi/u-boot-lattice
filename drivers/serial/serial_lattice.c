@@ -31,7 +31,7 @@
 #define UART_IIR_RXRDY				0x04
 #define UART_IIR_TXRDY				0x02
 
-#define S1_APB_UART_INST_UART_MEM_MAP_BASE_ADDR	0x10090000
+#define S1_APB_UART_INST_UART_MEM_MAP_BASE_ADDR	0x40090000
 #define CPU_CLOCK_HZ					100000000UL
 #define S1_APB_UART_INST_BAUD_RATE		115200
 
@@ -126,6 +126,7 @@ static int lattice_uart_probe(struct udevice *dev)
 	struct lattice_uart_plat *plat = dev_get_plat(dev);
 
 	/*initialize the instance data */
+	//plat->regs = S1_APB_UART_INST_UART_MEM_MAP_BASE_ADDR;
 	plat->sys_clk = CPU_CLOCK_HZ;
 	plat->baudrate = S1_APB_UART_INST_BAUD_RATE;
 	plat->databits = 8;
@@ -139,7 +140,7 @@ static int lattice_uart_of_to_plat(struct udevice *dev)
 {
 	struct lattice_uart_plat *plat = dev_get_plat(dev);
 
-	plat->regs = dev_read_addr_ptr(dev);
+	plat->regs = dev_read_addr(dev);
 	if (!plat->regs)
 		return -EINVAL;
 
