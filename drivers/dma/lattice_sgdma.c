@@ -52,6 +52,7 @@
 #include <lattice/lattice_sgdma.h>
 #include <asm/io.h>
 #include <dm.h>
+#include <time.h>
 
 #define TSE_SGDMA_BUSY_TIMEOUT		(CONFIG_SYS_HZ)
 
