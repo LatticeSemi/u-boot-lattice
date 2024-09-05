@@ -302,7 +302,7 @@ static int lattice_tse_send(struct udevice *dev, void *packet, int length)
 
 	for (i = 0; i <= length / 4; i++)
 	{
-		reg_32b_write((unsigned int)plat->mm2s_address + j, write_packet[i]);
+		reg_32b_write((void *)((unsigned int)plat->mm2s_address + j), write_packet[i]);
 		j += 4;
 	}
 	sgdma_core.base_addr = plat->sgdma_base_address;
@@ -394,7 +394,7 @@ static int lattice_tse_start(struct udevice *dev)
 	tse_core.adr = plat->tse_base_address;
 	tse_core.speed_mode = one_g_mode;
 	tse_core.tx_rx_ctrl_var = (RCV_SHORT_FRAME | RCV_PAUSE_FRAME | RCV_MULTICAST |
-				   RCV_BROADCAST | RCV_DISCARD_FCS |
+				   RCV_BROADCAST |
 				   RCV_ALL_ADDR_FRAME);
 	tse_core.enable_rx_mac = ENABLE_RX_MODE;
 	tse_core.enable_tx_mac = ENABLE_TX_MODE;
