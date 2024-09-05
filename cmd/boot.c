@@ -10,6 +10,7 @@
 #include <common.h>
 #include <command.h>
 #include <net.h>
+#include <u-boot/crc.h>
 
 #ifdef CONFIG_CMD_GO
 
@@ -32,7 +33,7 @@ static int do_go(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (argc < 3)
 		return CMD_RET_USAGE;
 
-	addr = hextoul(argv[1], NULL);
+	addr = (u8 *)hextoul(argv[1], NULL);
 	length = hextoul(argv[2], NULL);
 
 	printf ("## Checking CRC\n");
@@ -51,7 +52,7 @@ static int do_go(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	
 	addr = hextoul(argv[1], NULL);
 #endif
-	printf ("## Starting application at 0x%08lX ...\n", addr);
+	printf ("## Starting application at 0x%08lX ...\n", (ulong)addr);
 	flush();
 
 	/*
