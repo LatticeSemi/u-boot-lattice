@@ -778,6 +778,12 @@ config SYS_I2C_IHS
         help
           Support for gdsys IHS I2C driver on FPGA bus.
 
+config SYS_I2C_LATTICE
+	bool "Lattice I2C driver"
+	depends on DM_I2C
+	help
+	  Support for Lattice soft I2C controller on FPGA fabric.
+
 source "drivers/i2c/muxes/Kconfig"
 
 endif
