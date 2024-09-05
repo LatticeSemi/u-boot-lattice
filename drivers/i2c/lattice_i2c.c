@@ -52,8 +52,7 @@ struct lattice_i2c_regs {
 
 struct lattice_i2c_bus {
 	const char *instance_name;
-	//u32 __iomem *base_address; /* register base */
-	u32 base_address;   /* i2c master base address assigned */
+	void __iomem *base_address; /* i2c master base address assigned */
 	u8 state;       /* IDLE, READ, WRITE */
 	u8 addr_mode;   /* 7-bit or 10-bit mode */
 	u16 interrupts_en;
@@ -61,12 +60,12 @@ struct lattice_i2c_bus {
 	u8 rcv_length;
 };
 
-u8 lattice_i2c_init(struct lattice_i2c_bus *this_i2cm, u32 base_addr)
+u8 lattice_i2c_init(struct lattice_i2c_bus *this_i2cm, void __iomem * base_addr)
 {
 	if (!this_i2cm)
 		return 1;
 
-	this_i2cm->base_address = base_addr;
+	this_i2cm->base_address = (void __iomem *)base_addr;
 	this_i2cm->addr_mode = I2CM_ADDR_7BIT_MODE;
 	this_i2cm->state = I2CM_STATE_IDLE;
 	this_i2cm->interrupts_en = 0;
@@ -84,23 +83,21 @@ u8 lattice_i2c_config(struct lattice_i2c_bus *this_i2cm,
 
 	if (interrupts_en != this_i2cm->interrupts_en) {
 		this_i2cm->interrupts_en = interrupts_en;
-		reg_8b_write(this_i2cm->base_address | REG_INT_ENABLE1,
-			     interrupts_en);
-		reg_8b_write(this_i2cm->base_address | REG_INT_ENABLE2,
-			     interrupts_en >> 8);
+		writel(interrupts_en, this_i2cm->base_address + REG_INT_ENABLE1);
+		writel(interrupts_en >> 8, this_i2cm->base_address + REG_INT_ENABLE2);
 	}
 
     // address mode set, 7-bit/10-bit mode
 	if (this_i2cm->addr_mode != i2c_mode) {
 		this_i2cm->addr_mode = i2c_mode;
 		if (i2c_mode == I2CM_ADDR_10BIT_MODE) {
-			reg_8b_modify(this_i2cm->base_address | REG_MODE,
+			reg_8b_modify(this_i2cm->base_address + REG_MODE,
 				      I2C_ADDR_MODE, I2C_ADDR_MODE);
 		}
 	}
 
 	//set the pre_scaler to tune the i2c clock
-	reg_8b_modify(this_i2cm->base_address | REG_MODE,
+	reg_8b_modify(this_i2cm->base_address + REG_MODE,
 		      I2C_CLK_DIV_HIGH, pre_scaler >> 8);
 
 	return 0;
@@ -120,42 +117,40 @@ u8 lattice_i2c_read_data(struct lattice_i2c_bus *this_i2cm,
 		return 1;
 
 	// config the register before issue the transaction
-	reg_8b_write(this_i2cm->base_address | REG_BYTE_CNT, read_length);
+	writel(read_length, this_i2cm->base_address + REG_BYTE_CNT);
 
-	reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_LOW,
-		     address & 0x7F);
+	writel(address & 0x7F, this_i2cm->base_address + REG_SLAVE_ADDR_LOW);
 
 	// 10-bit mode
 	if (this_i2cm->addr_mode == I2CM_ADDR_10BIT_MODE)
-		reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_HIGH,
-			     (address >> 7) & 0x03);
+		writel((address >> 7) & 0x03,
+		       this_i2cm->base_address + REG_SLAVE_ADDR_HIGH);
 
 	// set to read mode
-	reg_8b_modify(this_i2cm->base_address | REG_MODE, I2C_TXRX_MODE,
+	reg_8b_modify(this_i2cm->base_address + REG_MODE, I2C_TXRX_MODE,
 		      I2C_TXRX_MODE);
 
 	// check i2c status
 	if (this_i2cm->state == I2CM_STATE_IDLE) {
 		this_i2cm->state = I2CM_STATE_READ;
-		reg_8b_write(this_i2cm->base_address | REG_CONFIG, I2C_START);
+		writel(I2C_START, this_i2cm->base_address + REG_CONFIG);
 	} else {
 		printf("%s: I2C_STATE_READ Error!\n", __func__);
 		return 1;
 	}
 #if !INT_MODE
 	// clear I2C_ERR bits if set
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS2, i2c_int2);
+	i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
+	writel(i2c_int2, this_i2cm->base_address + REG_INT_STATUS2);
 
 	while (1) {
-		reg_8b_read(this_i2cm->base_address | FIFO_STATUS_REG,
-			    &fifo_status);
+		fifo_status = readb(this_i2cm->base_address + FIFO_STATUS_REG);
 
 		// if rx fifo not empty, read a byte
 		if ((fifo_status & RX_FIFO_EMPTY_MASK) == 0) {
 			if (data_count <= read_length)
-				reg_8b_read(this_i2cm->base_address |
-					    REG_DATA_BUFFER, data_buffer);
+				*data_buffer = readb(this_i2cm->base_address +
+						     REG_DATA_BUFFER);
 
 			// update the counter and data buffer pointer
 			data_buffer++;
@@ -169,13 +164,13 @@ u8 lattice_i2c_read_data(struct lattice_i2c_bus *this_i2cm,
 		}
 
 		// check for I2C errors
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
+		i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
 		if (i2c_int2 & I2C_ERR) {
 			printf("%s: I2C READ: I2C_ERROR\n", __func__);
 			// reset the i2c master
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, I2C_MASTER_RESET);
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, ~I2C_MASTER_RESET);
 
 			i2c_status = 1;
@@ -205,28 +200,27 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		return 1;
 
 	// config the register before issue the transaction
-	reg_8b_write(this_i2cm->base_address | REG_BYTE_CNT, wr_data_size);
+	writel(wr_data_size, this_i2cm->base_address + REG_BYTE_CNT);
 
-	reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_LOW,
-		     address & 0x7F);
+	writel(address & 0x7F, this_i2cm->base_address + REG_SLAVE_ADDR_LOW);
 
 	// 10-bit mode
 	if (this_i2cm->addr_mode == I2CM_ADDR_10BIT_MODE)
-		reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_HIGH,
-			     (address >> 8) & 0x03);
+		writel((address >> 8) & 0x03, this_i2cm->base_address +
+		       REG_SLAVE_ADDR_HIGH);
 
 	// set to write mode
-	reg_8b_modify(this_i2cm->base_address | REG_MODE, I2C_TXRX_MODE, 0);
+	reg_8b_modify(this_i2cm->base_address + REG_MODE, I2C_TXRX_MODE, 0);
 
 	// clear status bits
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS1, status);
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS2, i2c_int2);
+	status = readb(this_i2cm->base_address + REG_INT_STATUS1);
+	writel(status, this_i2cm->base_address + REG_INT_STATUS1);
+	i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
+	writel(i2c_int2, this_i2cm->base_address + REG_INT_STATUS2);
 
 	while (data_count < wr_data_size) {
 		// check tx fifo level,
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
+		status = readb(this_i2cm->base_address + REG_INT_STATUS1);
 
 		/*
 		 * if tx fifo is full, stop loading fifo for now,
@@ -236,8 +230,8 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 			break;
 
 		// push the data into tx buffer
-		reg_8b_write(this_i2cm->base_address | REG_DATA_BUFFER,
-			     *wr_data_buffer);
+		writel(*wr_data_buffer, this_i2cm->base_address +
+		       REG_DATA_BUFFER);
 
 		// update the counter and data buffer pointer
 		wr_data_buffer++;
@@ -247,8 +241,8 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 	if (this_i2cm->state == I2CM_STATE_IDLE) {
 		// start the transaction
 		this_i2cm->state = I2CM_STATE_WRITE;
-		reg_8b_write(this_i2cm->base_address | REG_CONFIG,
-			     I2C_START | I2C_MASTER_REPEATED_START);
+		writel(I2C_START | I2C_MASTER_REPEATED_START,
+		       this_i2cm->base_address + REG_CONFIG);
 	} else {
 		return 1;
 	}
@@ -260,7 +254,7 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		 * cycle completes when all bytes are transmitted
 		 * or a NACK is received or an ERROR is detected
 		 */
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
+		status = readb(this_i2cm->base_address + REG_INT_STATUS1);
 		if (status & I2C_TRANSFER_COMP_MASK) {
 			this_i2cm->state = I2CM_STATE_IDLE;
 			break;
@@ -269,12 +263,14 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		// still have bytes to send
 		if (data_count < wr_data_size) {
 			// load any additional bytes into tx fifo when it becomes almost empty
-			reg_8b_read(this_i2cm->base_address | FIFO_STATUS_REG, &fifo_status);
+			fifo_status = readb(this_i2cm->base_address + FIFO_STATUS_REG);
 			// if tx fifo is almost empty
 			if (fifo_status & TX_FIFO_AEMPTY_MASK) {
 				// push the data into tx buffer
-				reg_8b_write(this_i2cm->base_address |
+				reg_8b_write(this_i2cm->base_address +
 					     REG_DATA_BUFFER, *wr_data_buffer);
+				writel(*wr_data_buffer,
+				       this_i2cm->base_address + REG_DATA_BUFFER);
 
 				// update the counter and data buffer pointer
 				wr_data_buffer++;
@@ -283,12 +279,12 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		}
 
 		// check for I2C errors including NACK
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
+		i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
 		if (i2c_int2 & I2C_ERR) {
 			// reset the i2c master
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, I2C_MASTER_RESET);
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, ~I2C_MASTER_RESET);
 
 			i2c_status = 1;
@@ -308,41 +304,40 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		return 1;
 
 	/* configure the register before issue the transaction */
-	reg_8b_write(this_i2cm->base_address | REG_BYTE_CNT, rd_data_size);
-
-	reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_LOW,
-		     address & 0x7F);
+	writel(rd_data_size, this_i2cm->base_address + REG_BYTE_CNT);
+	writel(address & 0x7F, this_i2cm->base_address + REG_SLAVE_ADDR_LOW);
 
 	// 10-bit mode
 	if (this_i2cm->addr_mode == I2CM_ADDR_10BIT_MODE)
-		reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_HIGH,
-			     (address >> 8) & 0x03);
+		writel((address >> 8) & 0x03, this_i2cm->base_address +
+		       REG_SLAVE_ADDR_HIGH);
 
 	// set to read mode
-	reg_8b_modify(this_i2cm->base_address | REG_MODE,
+	reg_8b_modify(this_i2cm->base_address + REG_MODE,
 		      I2C_TXRX_MODE, I2C_TXRX_MODE);
 
 	if (this_i2cm->state == I2CM_STATE_IDLE) {
 		this_i2cm->state = I2CM_STATE_READ;
-		reg_8b_write(this_i2cm->base_address | REG_CONFIG, I2C_START);
-		//reg_8b_write(this_i2cm->base_address | REG_CONFIG,
+		writel(I2C_START, this_i2cm->base_address + REG_CONFIG);
+		//reg_8b_write(this_i2cm->base_address + REG_CONFIG,
 		//	       I2C_MASTER_REPEATED_START);//0
 	} else {
 		return 1;
 	}
 #if !INT_MODE
 	// clear I2C_ERR bits if set
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS2, i2c_int2);
+	i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
+	writel(i2c_int2, this_i2cm->base_address + REG_INT_STATUS2);
 
 	while (1) {
-		reg_8b_read(this_i2cm->base_address | FIFO_STATUS_REG, &fifo_status);
+		//reg_8b_read(this_i2cm->base_address + FIFO_STATUS_REG, &fifo_status);
+		fifo_status = readb(this_i2cm->base_address + FIFO_STATUS_REG);
 
 		// if rx fifo not empty, read a byte
 		if ((fifo_status & RX_FIFO_EMPTY_MASK) == 0) {
 			if (data_count <= rd_data_size)
-				reg_8b_read(this_i2cm->base_address |
-						REG_DATA_BUFFER, rd_data_buffer);
+				*rd_data_buffer = readb(this_i2cm->base_address
+						       + REG_DATA_BUFFER);
 
 			// update the counter and data buffer pointer
 			rd_data_buffer++;
@@ -356,12 +351,12 @@ u8 i2c_master_repeated_start(struct lattice_i2c_bus *this_i2cm,
 		}
 
 		// check for I2C errors
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
+		i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
 		if (i2c_int2 & I2C_ERR) {
 			// reset the i2c master
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, I2C_MASTER_RESET);
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, ~I2C_MASTER_RESET);
 
 			i2c_status = 1;
@@ -390,28 +385,26 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 		return 1;
 
 	/* configure the register before issue the transaction */
-	reg_8b_write(this_i2cm->base_address | REG_BYTE_CNT, data_size);
-
-	reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_LOW,
-		     address & 0x7F);
+	writel(data_size, this_i2cm->base_address + REG_BYTE_CNT);
+	writel(address & 0x7F, this_i2cm->base_address + REG_SLAVE_ADDR_LOW);
 
 	// 10-bit mode
 	if (this_i2cm->addr_mode == I2CM_ADDR_10BIT_MODE)
-		reg_8b_write(this_i2cm->base_address | REG_SLAVE_ADDR_HIGH,
-			     (address >> 8) & 0x03);
+		writel((address >> 8) & 0x03,
+		       this_i2cm->base_address + REG_SLAVE_ADDR_HIGH);
 
 	// set to write mode
-	reg_8b_modify(this_i2cm->base_address | REG_MODE, I2C_TXRX_MODE, 0);
+	reg_8b_modify(this_i2cm->base_address + REG_MODE, I2C_TXRX_MODE, 0);
 
 	// clear status bits
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS1, status);
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS2, i2c_int2);
+	status = readb(this_i2cm->base_address + REG_INT_STATUS1);
+	writel(status, this_i2cm->base_address + REG_INT_STATUS1);
+	i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
+	writel(i2c_int2, this_i2cm->base_address + REG_INT_STATUS2);
 
 	while (data_count < data_size) {
 		// check tx fifo level,
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
+		status = readb(this_i2cm->base_address + REG_INT_STATUS1);
 
 		/*
 		 * if tx fifo is full, stop loading fifo for now,
@@ -421,7 +414,7 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 			break;
 
 		/* push the data into tx buffer */
-		reg_8b_write(this_i2cm->base_address | REG_DATA_BUFFER, *data_buffer);
+		writel(*data_buffer, this_i2cm->base_address + REG_DATA_BUFFER);
 
 		/* update the counter and data buffer pointer */
 		data_buffer++;
@@ -431,7 +424,7 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 	if (this_i2cm->state == I2CM_STATE_IDLE) {
 		// start the transaction
 		this_i2cm->state = I2CM_STATE_WRITE;
-		reg_8b_write(this_i2cm->base_address | REG_CONFIG, I2C_START);
+		writel(I2C_START, this_i2cm->base_address + REG_CONFIG);
 	} else {
 		printf("%s: I2C_STATE_WRITE Error!\n", __func__);
 		return 1;
@@ -443,7 +436,7 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 		 * cycle completes when all bytes are transmitted
 		 * or a NACK is received or an ERROR is detected
 		 */
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &status);
+		status = readb(this_i2cm->base_address + REG_INT_STATUS1);
 		if (status & I2C_TRANSFER_COMP_MASK) {
 			this_i2cm->state = I2CM_STATE_IDLE;
 			break;
@@ -455,13 +448,13 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 			 * load any additional bytes into tx fifo
 			 * when it becomes almost empty
 			 */
-			reg_8b_read(this_i2cm->base_address | FIFO_STATUS_REG,
-				    &fifo_status);
+			fifo_status = readb(this_i2cm->base_address +
+					    FIFO_STATUS_REG);
 			/* if tx fifo is almost empty */
 			if (fifo_status & TX_FIFO_AEMPTY_MASK) {
 				/* push the data into tx buffer */
-				reg_8b_write(this_i2cm->base_address |
-					     REG_DATA_BUFFER, *data_buffer);
+				writel(*data_buffer, this_i2cm->base_address +
+				       REG_DATA_BUFFER);
 
 				// update the counter and data buffer pointer
 				data_buffer++;
@@ -470,13 +463,13 @@ u8 lattice_i2c_write_data(struct lattice_i2c_bus *this_i2cm,
 		}
 
 		/* check for I2C errors including NACK */
-		reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
+		i2c_int2 = readb(this_i2cm->base_address + REG_INT_STATUS2);
 		if (i2c_int2 & I2C_ERR) {
 			printf("%s: I2C WRITE: I2C_ERROR\n", __func__);
 			// reset the i2c master
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, I2C_MASTER_RESET);
-			reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+			reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 				      I2C_MASTER_RESET, ~I2C_MASTER_RESET);
 
 			i2c_status = 1;
@@ -495,11 +488,11 @@ void i2c_master_isr(struct udevice *dev, void *ctx)
 
 	struct lattice_i2c_bus *this_i2cm = dev_get_priv(dev);
 
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS1, &i2c_int1);
-	reg_8b_read(this_i2cm->base_address | REG_INT_STATUS2, &i2c_int2);
+	i2c_int1 = readl(this_i2cm->base_address + REG_INT_STATUS1);
+	i2c_int2 = readl(this_i2cm->base_address + REG_INT_STATUS2);
 
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS1, i2c_int1);
-	reg_8b_write(this_i2cm->base_address | REG_INT_STATUS2, i2c_int2);
+	writel(i2c_int1, this_i2cm->base_address + REG_INT_STATUS1);
+	writel(i2c_int2, this_i2cm->base_address + REG_INT_STATUS2);
 
 	if (i2c_int1 & I2C_TRANSFER_COMP_MASK)
 		this_i2cm->state = I2CM_STATE_IDLE;
@@ -507,8 +500,8 @@ void i2c_master_isr(struct udevice *dev, void *ctx)
 	if (i2c_int1 & RX_FIFO_RDY_MASK) {
 		if (this_i2cm->state == I2CM_STATE_READ &&
 		    this_i2cm->rx_buff) {
-			reg_8b_read(this_i2cm->base_address |
-				    REG_DATA_BUFFER, this_i2cm->rx_buff);
+			*this_i2cm->rx_buff = readl(this_i2cm->base_address +
+						    REG_DATA_BUFFER);
 
 			this_i2cm->rx_buff++;
 			this_i2cm->rcv_length++;
@@ -518,7 +511,7 @@ void i2c_master_isr(struct udevice *dev, void *ctx)
 	if (i2c_int2 & I2C_ERR) {
 		printf("%s: I2C ISR: I2C_ERROR\n", __func__);
 		// reset the i2c master
-		reg_8b_modify(this_i2cm->base_address | REG_CONFIG,
+		reg_8b_modify(this_i2cm->base_address + REG_CONFIG,
 			      I2C_MASTER_RESET, I2C_MASTER_RESET);
 
 		this_i2cm->state = I2CM_STATE_IDLE;
@@ -552,7 +545,7 @@ static int lattice_i2c_xfer(struct udevice *dev, struct i2c_msg *msg,
 			nmsgs = num_msgs;
 			retry++;
 			printf("%s,arbitration lost, retrying:%d\n", __func__,
-				   retry);
+			       retry);
 			continue;
 		}
 		nmsgs--;
@@ -568,11 +561,13 @@ static int lattice_i2c_xfer(struct udevice *dev, struct i2c_msg *msg,
 
 static int lattice_i2c_of_to_plat(struct udevice *dev)
 {
+	fdt_addr_t addr;
 	struct lattice_i2c_bus *i2c_bus = dev_get_priv(dev);
 
-	i2c_bus->base_address = dev_read_addr_ptr(dev);
-	if (!i2c_bus->base_address)
+	addr = dev_read_addr(dev);
+	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
+	i2c_bus->base_address = (void __iomem *)addr;
 
 	return 0;
 }
