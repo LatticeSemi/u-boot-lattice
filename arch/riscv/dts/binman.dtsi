@@ -54,21 +54,6 @@
 				};
 #endif
 
-				opensbi {
-					description = "OpenSBI fw_dynamic Firmware";
-					type = "firmware";
-					os = "opensbi";
-					arch = "riscv";
-					compression = "none";
-					load = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
-					entry = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
-
-					opensbi_blob: opensbi {
-						filename = "fw_dynamic.bin";
-						missing-msg = "opensbi";
-					};
-				};
-
 #ifndef CONFIG_OF_BOARD
 				@fdt-SEQ {
 					description = "NAME";
@@ -87,7 +72,6 @@
 				conf-1 {
 #endif
 					description = "NAME";
-					firmware = "opensbi";
 #ifndef CONFIG_SPL_LOAD_FIT_OPENSBI_OS_BOOT
 					loadables = "uboot";
 #else

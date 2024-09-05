@@ -290,7 +290,7 @@ config TPL_USE_ARCH_STRNCMP
 endmenu
 
 config RISCV_ISA_A
-	def_bool n
+	def_bool y
 
 config 32BIT
 	bool

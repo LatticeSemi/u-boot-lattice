@@ -6,6 +6,7 @@
 /dts-v1/;
 
 #include "lattice_riscv.dtsi"
+#include "binman.dtsi"
 
 / {
 	config {
@@ -28,5 +29,9 @@
 };
 
 &ethernet0 {
+	status = "okay";
+};
+
+&i2c0 {
 	status = "okay";
 };

@@ -4,7 +4,7 @@
 
 config GENERIC_RISCV
 	bool
-	select BINMAN if (SPL && !TARGET_LATTICE_RISCV)
+	select BINMAN if SPL
 	select ARCH_EARLY_INIT_R
 	select SYS_CACHE_SHIFT_6
 	imply CPU

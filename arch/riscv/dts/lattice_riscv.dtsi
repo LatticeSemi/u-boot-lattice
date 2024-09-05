@@ -33,7 +33,7 @@
 		cpu@0 {
 			device_type = "cpu";
 			compatible = "riscv";
-			riscv,isa = "rv32imc";
+			riscv,isa = "rv32imac";
 			clock-frequency = <100000000>;
 			reg = <0>;
 			i-cache-size = <0x1000>;
@@ -63,18 +63,18 @@
 		bootph-pre-ram;
 	};
 
-	uart0: serial@10090000 {
+	uart0: serial@40090000 {
 		compatible = "lattice,uart";
-		reg = <0x10090000 0x100>;
+		reg = <0x40090000 0x1000>;
 		status = "disabled";
 		bootph-pre-ram;
 	};
 
-	spi0: qspi@10940000 {
+	spi0: qspi@40300000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "lattice,lattice-qspi";
-		reg = <0x10094000 0x1000>;
+		reg = <0x40300000 0x1000>;
 		status = "disabled";
 		bootph-pre-ram;
 
@@ -85,22 +85,30 @@
 		};
 	};
 
-	gpio0: gpio@10000000 {
+	gpio0: gpio@40000000 {
 		compatible = "lattice,lattice-gpio-1.0";
-		reg = <0x10000000 0x1000>;
+		reg = <0x40000000 0x1000>;
 		status = "disabled";
 		bootph-pre-ram;
 	};
 
-	ethernet0: ethernet@0x10001000 {
+	ethernet0: ethernet@0x40001000 {
 		compatible = "lattice,lattice-tse-1.5.0";
-		reg = <0x10001000 0x1000>;
-		sgdma_base = <0x10093000>;
+		reg = <0x40001000 0x4000>;
+		sgdma_base = <0x40093000>;
 		mm2s_bd_address = <0x90010000>;
 		mm2s_address = <0x90000000>;
 		s2mm_bd_address = <0x90020000>;
 		s2mm_address = <0x90006000>;
 		status = "disabled";
 		bootph-pre-ram;
+	};
+
+	i2c0: i2c@0x40005000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "lattice,lattice-i2c-2.0.0";
+		reg = <0x40005000 0x1000>;
+		status = "disabled";
 	};
 };
