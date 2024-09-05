@@ -140,7 +140,7 @@ static int lattice_uart_of_to_plat(struct udevice *dev)
 {
 	struct lattice_uart_plat *plat = dev_get_plat(dev);
 
-	plat->regs = dev_read_addr(dev);
+	plat->regs = (struct lattice_uart_regs*)dev_read_addr(dev);
 	if (!plat->regs)
 		return -EINVAL;
 
