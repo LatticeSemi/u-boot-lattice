@@ -136,10 +136,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define COMMAND_LANE_WIDTH		        (0x00U)
 
 #define QSPI_FETCH_SEQ						7
-#define GOLDEN_COPY_MEMORY_START_ADDR      	0x02800000
-#define PRIMARY_COPY_MEMORY_START_ADDR     	0x028A0000
 #define MSB_MEMORY_START_ADDR      			0x0
-#define FLASH_ADDR_WIDTH 					0x3
 #define LANE_WIDTH_X4 						0x2
 
 #define FLASH_CMD_CODE_STD_RD 				0x0B
@@ -148,6 +145,25 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define QSPI_FW_FETCH_SIZE					0xf000
 #define QSPI_FW_WR_SIZE						0x100
+
+#define FLASH_ADDR_24BIT      24
+#define FLASH_ADDR_32BIT      32
+#define STANDARD_SPI_MODE	  1
+#define QUAD_SPI_MODE		  4
+
+#define FLASH_ADDR_MODE       FLASH_ADDR_32BIT
+#define SPI_COMM_MODE         QUAD_SPI_MODE
+
+#if(FLASH_ADDR_MODE == FLASH_ADDR_32BIT)
+#define GOLDEN_COPY_MEMORY_START_ADDR      0x02800000
+#define PRIMARY_COPY_MEMORY_START_ADDR     0x028A0000
+#define MSB_MEMORY_START_ADDR      		   0x0
+#define FLASH_ADDR_WIDTH 				   0x3
+#elif(FLASH_ADDR_MODE == FLASH_ADDR_24BIT)
+#define GOLDEN_COPY_MEMORY_START_ADDR      (0x00300000<<8)//0x00300000
+#define PRIMARY_COPY_MEMORY_START_ADDR     (0x00400000<<8)
+#define FLASH_ADDR_WIDTH 				   0x2
+#endif
 
 /* lattice qspi register set */
 struct lattice_qspi_regs {
@@ -326,26 +342,31 @@ static void lattice_qspi_init(struct lattice_qspi_priv *priv)
 	pkt_param.params_ext_t.flash_addr_width = FLASH_ADDR_WIDTH;
 	pkt_param.params_ext_t.tgt_cs = TGT_CS;
 
-	/* QUAD_SPI_MODE - support Macronix flash only */
-	pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
-	pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE;
-	pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X4;
-	pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X4;
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
-	
-	/* STANDARD_SPI_MODE - support Winbond flash only */
-	/*pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
-	pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE_STD;
-	pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
-*/
+	if (SPI_COMM_MODE == QUAD_SPI_MODE) {
+		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
+		pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE;
+		pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X4;
+		pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X4;
+#if defined(CONFIG_SPI_FLASH_MACRONIX)
+		/* QUAD_SPI_MODE - support Macronix flash only */
+		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X4;
+#elif defined(CONFIG_SPI_FLASH_WINBOND)
+		/* STANDARD_SPI_MODE - support Winbond flash only */
+		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
+#endif
+	} else if (SPI_COMM_MODE == QUAD_SPI_MODE) {
+		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
+		pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE_STD;
+		pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X1;
+		pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X1;
+		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
+	}
+
 	writel(CLR_INTERRUPT, &regs->int_status);
 	writel(EN_FRAME_END_DONE_CNTR | EN_FLASH_ADDR_SPACE_MAP | BIG_ENDIAN | DIV_BY_4 | CHIP_SEL_BEH | MIN_IDLE_TIME |
 			EN_BACK_TO_BACK_TRANS | SAMPLE_EVEN_EDGES | ACTIVE_HIGH | MSB_FIRST, &regs->config_reg_0);
 	writel(TGT_RD_TRANS_CNT, &regs->config_reg_1);
 
-#if defined(CONFIG_SPL_BUILD)
 	/* FLASH_ADDR_32BIT (4 BYTE ADDRESSING) */
  	writel(ENTER_4_BYTE_ADDR_MODE_CMD_CODE, &regs->flash_cmd_code_7);
 	writel(XFER_LEN_BYTES | NUM_WAIT_STATE | MULT_FLASH_TARGET |
@@ -356,14 +377,15 @@ static void lattice_qspi_init(struct lattice_qspi_priv *priv)
 	writel(CLR_INTERRUPT, &regs->int_status);
 	writel(CLR_START_TRANS_VAL, &regs->start_trans);
 
-	/* QUAD_SPI_MODE - support Macronix flash only */
- 	lattice_qspi_enable_quad_mode(priv);
-	writel(QUAD_IO_FAST_RD_CMD_CODE, &regs->flash_cmd_code_3);
-
-	/* STANDARD_SPI_MODE - support Winbond flash only */
-	//lattice_qspi_reset_quad_mode(priv);
-	//writel(STD_IO_FAST_RD_CMD_CODE, &regs->flash_cmd_code_2);
-#endif
+	if (SPI_COMM_MODE == QUAD_SPI_MODE) {
+		/* QUAD_SPI_MODE - support Macronix flash only */
+		lattice_qspi_enable_quad_mode(priv);
+		writel(QUAD_IO_FAST_RD_CMD_CODE, &regs->flash_cmd_code_3);
+	} else if (SPI_COMM_MODE == STANDARD_SPI_MODE) {
+		/* STANDARD_SPI_MODE - support Winbond flash only */
+		lattice_qspi_reset_quad_mode(priv);
+		writel(STD_IO_FAST_RD_CMD_CODE, &regs->flash_cmd_code_2);
+	}
 
 	/* disable interrupt */
 	writel(INT_DIS_VAL, &regs->int_en);
@@ -428,15 +450,17 @@ static int lattice_qspi_read_fifo_dis(struct mtd_info *mtd, loff_t from, size_t 
 	cycle = 0;
 	rem = 0;
 
+#if defined(CONFIG_SPI_FLASH_MACRONIX)
 	/* Macronix flash */
-	//pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X4;
+	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X4;
+#elif defined(CONFIG_SPI_FLASH_WINBOND)
 	/* Winbond flash */
 	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
-	//pkt_param.params_ext_t.with_payload = WITH_PAYLOAD_RD;
-	/* Winbond flash */
-	//pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
-	/* Macronix flash */
-	pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
+#endif
+	if (SPI_COMM_MODE == QUAD_SPI_MODE)
+		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
+	else if (SPI_COMM_MODE == QUAD_SPI_MODE)
+		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
 
 	if (len >= QSPI_FW_FETCH_SIZE){
 		cycle = len/QSPI_FW_FETCH_SIZE;
@@ -642,10 +666,15 @@ static int lattice_qspi_probe(struct udevice *dev)
 	flash->mtd = mtd;
 	flash->size = mtd->size;
 	flash->sector_count = mtd->size / mtd->erasesize;
+
+#if defined(CONFIG_SPI_FLASH_MACRONIX)
 	/* Macronix flash ID */
-	//flash->flash_id = 0xc2201a;
+	flash->flash_id = 0xc2201a;
+#elif defined(CONFIG_SPI_FLASH_WINBOND)
 	/* Winbond dlash ID */
 	flash->flash_id = 0xef4020;
+#endif
+
 	flash->start[0] = 0;
 	for (i = 1; i < flash->sector_count; i++)
 		flash->start[i] = flash->start[i - 1] + mtd->erasesize;
