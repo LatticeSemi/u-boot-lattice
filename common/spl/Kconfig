@@ -1382,6 +1382,12 @@ config SPL_SPI_LOAD
 
 endif # SPL_SPI_FLASH_SUPPORT
 
+config SPL_MTD_LOAD
+	bool "Support loading from Lattice MTD serial NOR flash"
+	help
+	  Enable support for loading next stage, U-Boot or otherwise, from
+	  Lattice MTD serial NOR flash.
+
 config SYS_SPI_U_BOOT_OFFS
 	hex "address of u-boot payload in SPI flash"
 	default 0x8000 if ARCH_SUNXI

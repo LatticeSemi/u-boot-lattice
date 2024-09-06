@@ -987,4 +987,10 @@ config MDIO_MUX_MESON_GXL
 	  This driver is used for the MDIO mux found on the Amlogic GXL & compatible
 	  SoCs.
 
+config LATTICE_TSE
+	bool "Lattice Triple-Speed Ethernet MAC support"
+	depends on LATTICE_SGDMA
+	help
+	  This driver supports the Lattice Triple-Speed (TSE) Ethernet MAC, coupled with SGDMA.
+
 endif # NETDEVICES

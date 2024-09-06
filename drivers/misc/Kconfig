@@ -689,4 +689,9 @@ config SL28CPLD
 	  the base driver which provides common access methods for the
 	  sub-drivers.
 
+config LATTICE_REG_ACCESS
+	bool "Enable Lattice register access"
+	help
+	  Support for the Lattice devices register access library. This is
+	  used for register I/O function in GPIO.
 endmenu

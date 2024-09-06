@@ -614,6 +614,12 @@ config ALTERA_UART
 	  Select this to enable an UART for Altera devices. Please find
 	  details on the "Embedded Peripherals IP User Guide" of Altera.
 
+config LATTICE_UART
+	bool "Lattice UART support"
+	depends on DM_SERIAL
+	help
+	  Select this to enable an UART for Lattice devices.
+
 config AR933X_UART
 	bool "QCA/Atheros ar933x UART support"
 	depends on DM_SERIAL && SOC_AR933X

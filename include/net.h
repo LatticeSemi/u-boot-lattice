@@ -26,11 +26,11 @@ struct bd_info;
 struct cmd_tbl;
 struct udevice;
 
-#define DEBUG_LL_STATE 0	/* Link local state machine changes */
-#define DEBUG_DEV_PKT 0		/* Packets or info directed to the device */
-#define DEBUG_NET_PKT 0		/* Packets on info on the network at large */
-#define DEBUG_INT_STATE 0	/* Internal network state changes */
-#define DEBUG_NET_PKT_TRACE 0	/* Trace all packet data */
+#define DEBUG_LL_STATE 1	/* Link local state machine changes */
+#define DEBUG_DEV_PKT 1		/* Packets or info directed to the device */
+#define DEBUG_NET_PKT 1		/* Packets on info on the network at large */
+#define DEBUG_INT_STATE 1	/* Internal network state changes */
+#define DEBUG_NET_PKT_TRACE 1	/* Trace all packet data */
 
 /*
  *	The number of receive packet buffers, and the required packet buffer

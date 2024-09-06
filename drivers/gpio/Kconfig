@@ -688,4 +688,11 @@ config RZG2L_GPIO
 	  Support the gpio functionality of the pin function controller (PFC)
 	  on the Renesas RZ/G2L SoC family.
 
+config LATTICE_GPIO
+	depends on LATTICE_REG_ACCESS
+	depends on DM_GPIO
+	bool "Lattice GPIO driver"
+	help
+	  Support the gpio functionality of Lattice GPIO controller.
+
 endif
