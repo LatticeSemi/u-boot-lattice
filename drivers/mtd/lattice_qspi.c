@@ -3,7 +3,6 @@
  * (C) Copyright 2019-2024 by Lattice Semiconductor Corporation
  */
 
-#include <common.h>
 #include <console.h>
 #include <dm.h>
 #include <errno.h>
@@ -33,14 +32,11 @@ DECLARE_GLOBAL_DATA_PTR;
 #define WITH_PAYLOAD_RD					(0U)		// 0 for read & 1 for write
 #define	SUPP_FLASH_CMD					(1U)
 #define FLASH_ADDR_WIDTH_FIFO_DIS		(0x2U)
-#define TGT_CS	           				(0x0U)
+#define TGT_CS						(0x0U)
 #define ADDR_LANE_WIDTH					(0x0U)
 #define CMD_LANE_WIDTH					(0x0U)
 #define FLASH_ADDR_WIDTH_FIFO_EN		(0x2U)
-#define RET_FAILURE	   					(1U)
-#define RET_SUCCESS						(0U)
-#define IDLE							(0U)
-#define IS_NULL							(0U)
+
 #define TRANSFR_LEN_SHIFT				(16U)
 #define FLASH_ADDR_WID_SHIFT_FIFO_EN	(12U)
 #define FLASH_ADDR_WID_SHIFT_FIFO_DIS	(13U)
@@ -49,7 +45,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define MULT_FLASH_TGT_SHIFT			(7U)
 #define WITH_PAYLOAD_SHIFT				(1U)
 #define TGT_CS_SHIFT					(8U)
-#define DATA_LANE_WIDTH_SHIFT  			(4U)
+#define DATA_LANE_WIDTH_SHIFT			(4U)
 #define ADDR_LANE_WIDTH_SHIFT			(2U)
 #define WR_INT_EN_VAL                   (0x00000003U)
 #define INT_EN_VAL                      (0x00000FFFU)
@@ -61,7 +57,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define IRQ_RD_FIFO_EN		            (1U)
 #define IRQ_WR_FIFO_DIS					(0U)
 #define IRQ_RD_FIFO_DIS	                (0U)
-#define TRANS_STS   					(1U)
+#define TRANS_STS					(1U)
 #define CLR_IRQ_STS_VAR                 (0U)
 #define IDX_ZERO			            (0U)
 #define IDX_ONE						    (1U)
@@ -136,12 +132,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define COMMAND_LANE_WIDTH		        (0x00U)
 
 #define QSPI_FETCH_SEQ						7
-#define MSB_MEMORY_START_ADDR      			0x0
-#define LANE_WIDTH_X4 						0x2
+#define MSB_MEMORY_START_ADDR					0x0
+#define LANE_WIDTH_X4						0x2
 
-#define FLASH_CMD_CODE_STD_RD 				0x0B
+#define FLASH_CMD_CODE_STD_RD					0x0B
 #define NUM_WAIT_CYCLE_STD					0x8
-#define LANE_WIDTH_X1 						0x0
+#define LANE_WIDTH_X1						0x0
 
 #define QSPI_FW_FETCH_SIZE					0xf000
 #define QSPI_FW_WR_SIZE						0x100
@@ -154,15 +150,15 @@ DECLARE_GLOBAL_DATA_PTR;
 #define FLASH_ADDR_MODE       FLASH_ADDR_32BIT
 #define SPI_COMM_MODE         QUAD_SPI_MODE
 
-#if(FLASH_ADDR_MODE == FLASH_ADDR_32BIT)
+#if (FLASH_ADDR_MODE == FLASH_ADDR_32BIT)
 #define GOLDEN_COPY_MEMORY_START_ADDR      0x02800000
 #define PRIMARY_COPY_MEMORY_START_ADDR     0x028A0000
-#define MSB_MEMORY_START_ADDR      		   0x0
-#define FLASH_ADDR_WIDTH 				   0x3
-#elif(FLASH_ADDR_MODE == FLASH_ADDR_24BIT)
-#define GOLDEN_COPY_MEMORY_START_ADDR      (0x00300000<<8)//0x00300000
-#define PRIMARY_COPY_MEMORY_START_ADDR     (0x00400000<<8)
-#define FLASH_ADDR_WIDTH 				   0x2
+#define MSB_MEMORY_START_ADDR			0x0
+#define FLASH_ADDR_WIDTH			0x3
+#elif (FLASH_ADDR_MODE == FLASH_ADDR_24BIT)
+#define GOLDEN_COPY_MEMORY_START_ADDR		(0x00300000 << 8)
+#define PRIMARY_COPY_MEMORY_START_ADDR		(0x00400000 << 8)
+#define FLASH_ADDR_WIDTH			0x2
 #endif
 
 /* lattice qspi register set */
@@ -181,14 +177,14 @@ struct lattice_qspi_regs {
 	u32 flash_cmd_code_7;		/* 0x28 */
 	u32 min_flash_addr_align;	/* 0x2C */
 	u32 start_flash_addr;		/* 0x30 */
-	u32 flash_mem_map_size; 	/* 0x34 */
+	u32 flash_mem_map_size;		/* 0x34 */
 	u32 axi_mem_map;			/* 0x38 */
 	u32 reserved1[49];
-	
+
 	/* Status and Interrupt Registers */
 	u32 trans_status;			/* 0x100 */
 	u32 int_status;				/* 0x104 */
-	u32 int_en;					/* 0x108 */
+	u32 int_en;				/* 0x108 */
 	u32 int_set;				/* 0x10c */
 	u32 supp_flash_cmd_cnt ;	/* 0x110 */
 	u32 generic_flash_cmd_cnt;	/* 0x114 */
@@ -208,6 +204,31 @@ struct lattice_qspi_regs {
 	u32 reserved3[54];
 };
 
+struct qspi_params_ext_t {
+	u32 supp_flash_cmd : 1; // h0
+	u32 with_payload : 1;
+	u32 flash_cmd_code : 5;
+	u32 mult_flash_tgt : 1;
+	u32 num_wait_cycle : 8;
+	u32 buff_length : 16;
+	u32 cmd_lane_width : 2;
+	u32 addr_lane_width : 2;
+	u32 data_lane_width : 2;
+	u32 reservedbits_2 : 2;
+	u32 tgt_cs : 5;
+	u32 flash_addr_width : 3;
+	u32 reservedbits_1 : 16;
+	u32 flash_addr_LSB : 32;
+	u32 flash_addr_MSB : 32;
+};
+
+struct qspi_params_reg_t {
+	u32 packet_header0;
+	u32 packet_header1;
+	u32 packet_header2;
+	u32 packet_header3;
+};
+
 /* lattice qspi platform data */
 struct lattice_qspi_plat {
 	struct lattice_qspi_regs *regs;
@@ -218,60 +239,30 @@ struct lattice_qspi_plat {
 /* lattice qspi priv */
 struct lattice_qspi_priv {
 	struct lattice_qspi_regs *regs;
+	struct qspi_params_ext_t params_ext;
 	u8 cs;
 	u8 mode;
 	u32 freq;		/* required frequency */
 	u32 max_hz;
 	const void *tx_buf;
 	void *rx_buf;
-	unsigned len;
+	u32 len;
 	int bytes_to_transfer;
 	int bytes_to_receive;
-	unsigned int is_inst;
-	unsigned cs_change:1;
+	u32 is_inst;
+	u32 cs_change:1;
 };
 
-typedef struct {
-	unsigned int supp_flash_cmd : 1; // h0
-	unsigned int with_payload : 1;
-	unsigned int flash_cmd_code : 5;
-	unsigned int mult_flash_tgt : 1;
-	unsigned int num_wait_cycle : 8;
-	unsigned int buff_length : 16;
-	unsigned int cmd_lane_width : 2;
-	unsigned int addr_lane_width : 2;
-	unsigned int data_lane_width : 2;
-	unsigned int reservedbits_2 : 2;
-	unsigned int tgt_cs : 5;
-	unsigned int flash_addr_width : 3;
-	unsigned int reservedbits_1 : 16;
-	unsigned int flash_addr_LSB : 32;
-	unsigned int flash_addr_MSB : 32;
-}qspi_params_ext_t;
-
-typedef struct {
-	unsigned int packet_header0;
-	unsigned int packet_header1;
-	unsigned int packet_header2;
-	unsigned int packet_header3;
-}qspi_params_reg_t;
-
-typedef union {
-	qspi_params_ext_t params_ext_t;
-	qspi_params_reg_t params_reg_t;
-}qspi_params_t;
-
-static qspi_params_t pkt_param;
+//static qspi_params_t pkt_param;
 flash_info_t flash_info[CONFIG_SYS_MAX_FLASH_BANKS];	/* FLASH chips info */
 
 static int lattice_qspi_of_to_plat(struct udevice *bus)
 {
 	struct lattice_qspi_plat *plat = dev_get_plat(bus);
-	const void *blob = gd->fdt_blob;
-	int node = dev_of_offset(bus);
 
-	plat->regs = (struct lattice_qspi_regs *)fdtdec_get_addr(blob,
-							      node, "reg");
+	plat->regs = (struct lattice_qspi_regs *)(uintptr_t)dev_read_addr(bus);
+	if (IS_ERR(plat->regs))
+		return PTR_ERR(plat->regs);
 
 	return 0;
 }
@@ -319,60 +310,67 @@ static void lattice_qspi_enable_quad_mode(struct lattice_qspi_priv *priv)
 	writel(CLR_START_TRANS, &regs->start_trans);
 }
 
-static void lattice_qspi_set_pkt_hdr(struct lattice_qspi_priv *priv, qspi_params_t *this_pkt_hdr)
+static void lattice_qspi_set_pkt_hdr(struct lattice_qspi_priv *priv,
+				     struct qspi_params_ext_t *params_ext)
 {
 	struct lattice_qspi_regs *regs = priv->regs;
-
-	writel(this_pkt_hdr->params_reg_t.packet_header0, &regs->packet_header_0);
-	writel(this_pkt_hdr->params_reg_t.packet_header1, &regs->packet_header_1);
-	writel(this_pkt_hdr->params_reg_t.packet_header2, &regs->packet_header_2);
-	writel(this_pkt_hdr->params_reg_t.packet_header3, &regs->packet_header_3);
+	struct qspi_params_reg_t *params_reg_t =
+		(struct qspi_params_reg_t *)params_ext;
+	writel(params_reg_t->packet_header0, &regs->packet_header_0);
+	writel(params_reg_t->packet_header1, &regs->packet_header_1);
+	writel(params_reg_t->packet_header2, &regs->packet_header_2);
+	writel(params_reg_t->packet_header3, &regs->packet_header_3);
 }
 
 static void lattice_qspi_init(struct lattice_qspi_priv *priv)
 {
 	struct lattice_qspi_regs *regs = priv->regs;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
 
-	pkt_param.params_ext_t.buff_length = QSPI_FW_FETCH_SIZE;
-	pkt_param.params_ext_t.mult_flash_tgt = MULT_FLASH_TGT;
-	pkt_param.params_ext_t.with_payload = WITH_PAYLOAD_RD;
-	pkt_param.params_ext_t.supp_flash_cmd = SUPP_FLASH_CMD;
-	pkt_param.params_ext_t.flash_addr_LSB = PRIMARY_COPY_MEMORY_START_ADDR;
-	pkt_param.params_ext_t.flash_addr_MSB = MSB_MEMORY_START_ADDR;
-	pkt_param.params_ext_t.flash_addr_width = FLASH_ADDR_WIDTH;
-	pkt_param.params_ext_t.tgt_cs = TGT_CS;
+	params_ext->buff_length = QSPI_FW_FETCH_SIZE;
+	params_ext->mult_flash_tgt = MULT_FLASH_TGT;
+	params_ext->with_payload = WITH_PAYLOAD_RD;
+	params_ext->supp_flash_cmd = SUPP_FLASH_CMD;
+	params_ext->flash_addr_LSB = PRIMARY_COPY_MEMORY_START_ADDR;
+	params_ext->flash_addr_MSB = MSB_MEMORY_START_ADDR;
+	params_ext->flash_addr_width = FLASH_ADDR_WIDTH;
+	params_ext->tgt_cs = TGT_CS;
 
 	if (SPI_COMM_MODE == QUAD_SPI_MODE) {
-		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
-		pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE;
-		pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X4;
-		pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X4;
-#if defined(CONFIG_SPI_FLASH_MACRONIX)
+		params_ext->flash_cmd_code = FLASH_CMD_CODE_READ;
+		params_ext->num_wait_cycle = NUM_WAIT_CYCLE;
+		params_ext->data_lane_width = LANE_WIDTH_X4;
+		params_ext->addr_lane_width = LANE_WIDTH_X4;
+#if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 		/* QUAD_SPI_MODE - support Macronix flash only */
-		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X4;
-#elif defined(CONFIG_SPI_FLASH_WINBOND)
+		params_ext->cmd_lane_width = LANE_WIDTH_X4;
+#elif CONFIG_IS_ENABLED(SPI_FLASH_WINBOND)
 		/* STANDARD_SPI_MODE - support Winbond flash only */
-		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
+		params_ext->cmd_lane_width = LANE_WIDTH_X1;
 #endif
 	} else if (SPI_COMM_MODE == QUAD_SPI_MODE) {
-		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
-		pkt_param.params_ext_t.num_wait_cycle = NUM_WAIT_CYCLE_STD;
-		pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X1;
-		pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X1;
-		pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
+		params_ext->flash_cmd_code = FLASH_CMD_CODE_STD_RD;
+		params_ext->num_wait_cycle = NUM_WAIT_CYCLE_STD;
+		params_ext->data_lane_width = LANE_WIDTH_X1;
+		params_ext->addr_lane_width = LANE_WIDTH_X1;
+		params_ext->cmd_lane_width = LANE_WIDTH_X1;
 	}
 
 	writel(CLR_INTERRUPT, &regs->int_status);
-	writel(EN_FRAME_END_DONE_CNTR | EN_FLASH_ADDR_SPACE_MAP | BIG_ENDIAN | DIV_BY_4 | CHIP_SEL_BEH | MIN_IDLE_TIME |
-			EN_BACK_TO_BACK_TRANS | SAMPLE_EVEN_EDGES | ACTIVE_HIGH | MSB_FIRST, &regs->config_reg_0);
+	writel(EN_FRAME_END_DONE_CNTR | EN_FLASH_ADDR_SPACE_MAP | BIG_ENDIAN |
+	       DIV_BY_4 | CHIP_SEL_BEH | MIN_IDLE_TIME |
+	       EN_BACK_TO_BACK_TRANS | SAMPLE_EVEN_EDGES | ACTIVE_HIGH |
+	       MSB_FIRST, &regs->config_reg_0);
 	writel(TGT_RD_TRANS_CNT, &regs->config_reg_1);
 
 	/* FLASH_ADDR_32BIT (4 BYTE ADDRESSING) */
- 	writel(ENTER_4_BYTE_ADDR_MODE_CMD_CODE, &regs->flash_cmd_code_7);
+	writel(ENTER_4_BYTE_ADDR_MODE_CMD_CODE, &regs->flash_cmd_code_7);
 	writel(XFER_LEN_BYTES | NUM_WAIT_STATE | MULT_FLASH_TARGET |
-			FLASH_CMD_CODE | WITH_PAYLOAD | SUPPORTED_FLASH_CMD, &regs->packet_header_0);
+	       FLASH_CMD_CODE | WITH_PAYLOAD | SUPPORTED_FLASH_CMD,
+	       &regs->packet_header_0);
 	writel(FLASH_ADDRESS_WIDTH | TARGET_CS | DATA_LANE_WIDTH |
-			ADDRESS_LANE_WIDTH | COMMAND_LANE_WIDTH, &regs->packet_header_1);
+	       ADDRESS_LANE_WIDTH | COMMAND_LANE_WIDTH,
+	       &regs->packet_header_1);
 	writel(START_TRANS_VAL, &regs->start_trans);
 	writel(CLR_INTERRUPT, &regs->int_status);
 	writel(CLR_START_TRANS_VAL, &regs->start_trans);
@@ -391,10 +389,9 @@ static void lattice_qspi_init(struct lattice_qspi_priv *priv)
 	writel(INT_DIS_VAL, &regs->int_en);
 	/* enable interrupt */
 	writel(INT_EN_VAL, &regs->int_en);
-
 }
 
-static uint32_t convert_endian(uint32_t input)
+static u32 convert_endian(u32 input)
 {
 	return ((input << 24) |
 		   ((input & 0xFF00) << 8) |
@@ -402,20 +399,21 @@ static uint32_t convert_endian(uint32_t input)
 	       (input >> 24));
 }
 
-static void lattice_qspi_read_xfer(struct mtd_info *mtd, loff_t from, size_t len, unsigned int *buffer)
+static void lattice_qspi_read_xfer(struct mtd_info *mtd, loff_t from,
+				   size_t len, u32 *buffer)
 {
 	struct udevice *dev = mtd->dev;
 	struct lattice_qspi_priv *priv = dev_get_priv(dev);
 	struct lattice_qspi_regs *regs = priv->regs;
-	qspi_params_t *this_qspi_pkt = &pkt_param;
-	unsigned int *read_buffer = (unsigned int *) buffer;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
+	u32 *read_buffer = (u32 *)buffer;
 	int i;
 
-	pkt_param.params_ext_t.flash_addr_LSB = from;
-	pkt_param.params_ext_t.buff_length = len;
+	params_ext->flash_addr_LSB = from;
+	params_ext->buff_length = len;
 
 	/* write packet headers */
-	lattice_qspi_set_pkt_hdr(priv, this_qspi_pkt);
+	lattice_qspi_set_pkt_hdr(priv, params_ext);
 
 	/* interrupt enable */
 	writel(INT_EN_VAL, &regs->int_en);
@@ -424,58 +422,58 @@ static void lattice_qspi_read_xfer(struct mtd_info *mtd, loff_t from, size_t len
 	writel(CLR_START_TRANS, &regs->start_trans);
 	writel(START_TRANS_VAL, &regs->start_trans);
 
-	for (i = 0; i < len/4; i++)
-	{
+	for (i = 0; i < len / 4; i++) {
 		// check the interrupt
-		while (((readl(&regs->int_status) >> 4) & 0x1) == IRQ_RD_FIFO_DIS);
+		while (((readl(&regs->int_status) >> 4) & 0x1) ==
+		       IRQ_RD_FIFO_DIS);
 		// clear the interrupt
 		writel(CLR_INTERRUPT, &regs->int_status);
 		// read the data packet
-		//*(read_buffer+i) = readl(&regs->packet_data_0);
-		*(read_buffer+i) = convert_endian(readl(&regs->packet_data_0));
+		//*(read_buffer + i) = readl(&regs->packet_data_0);
+		*(read_buffer + i) =
+			convert_endian(readl(&regs->packet_data_0));
 	}
 
 	writel(CLR_START_TRANS, &regs->start_trans);
 }
 
-static int lattice_qspi_read_fifo_dis(struct mtd_info *mtd, loff_t from, size_t len,
-			    size_t *retlen, u_char *buf)
+static int lattice_qspi_read_fifo_dis(struct mtd_info *mtd, loff_t from,
+				      size_t len, size_t *retlen, u_char *buf)
 {
 	struct udevice *dev = mtd->dev;
 	struct lattice_qspi_priv *priv = dev_get_priv(dev);
 	struct lattice_qspi_regs *regs = priv->regs;
-	unsigned int *buffer = (unsigned int *) buf;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
+	u32 *buffer = (u32 *)buf;
 	int cycle, rem;
 
 	cycle = 0;
 	rem = 0;
 
-#if defined(CONFIG_SPI_FLASH_MACRONIX)
+#if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 	/* Macronix flash */
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X4;
-#elif defined(CONFIG_SPI_FLASH_WINBOND)
+	params_ext->cmd_lane_width = LANE_WIDTH_X4;
+#elif CONFIG_IS_ENABLED(SPI_FLASH_WINBOND)
 	/* Winbond flash */
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
+	params_ext->cmd_lane_width = LANE_WIDTH_X1;
 #endif
 	if (SPI_COMM_MODE == QUAD_SPI_MODE)
-		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_READ;
+		params_ext->flash_cmd_code = FLASH_CMD_CODE_READ;
 	else if (SPI_COMM_MODE == QUAD_SPI_MODE)
-		pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_STD_RD;
+		params_ext->flash_cmd_code = FLASH_CMD_CODE_STD_RD;
 
-	if (len >= QSPI_FW_FETCH_SIZE){
-		cycle = len/QSPI_FW_FETCH_SIZE;
-		rem = len%QSPI_FW_FETCH_SIZE;
-	}
-	else {
+	if (len >= QSPI_FW_FETCH_SIZE) {
+		cycle = len / QSPI_FW_FETCH_SIZE;
+		rem = len % QSPI_FW_FETCH_SIZE;
+	} else {
 		rem = len;
 	}
 
 	/* Performing read transaction */
-	while (cycle > 0)
-	{
+	while (cycle > 0) {
 		lattice_qspi_read_xfer(mtd, from, QSPI_FW_FETCH_SIZE, buffer);
 		from += QSPI_FW_FETCH_SIZE;
-		buffer += QSPI_FW_FETCH_SIZE/4;
+		buffer += QSPI_FW_FETCH_SIZE / 4;
 		cycle--;
 	}
 
@@ -489,37 +487,37 @@ static int lattice_qspi_read_fifo_dis(struct mtd_info *mtd, loff_t from, size_t 
 	return 0;
 }
 
-static void lattice_qspi_write_xfer(struct mtd_info *mtd, loff_t to, size_t len, unsigned int *buffer)
+static void lattice_qspi_write_xfer(struct mtd_info *mtd, loff_t to,
+				    size_t len, u32 *buffer)
 {
 	struct udevice *dev = mtd->dev;
 	struct lattice_qspi_priv *priv = dev_get_priv(dev);
 	struct lattice_qspi_regs *regs = priv->regs;
-	qspi_params_t *this_qspi_pkt = &pkt_param;
-	unsigned int *write_buffer = (unsigned int *) buffer;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
+	u32 *write_buffer = (u32 *)buffer;
 	int i, count;
 
-	count = len/4;
+	count = len / 4;
 
 	/* clear transfer */
 	writel(CLR_START_TRANS, &regs->start_trans);
 
-	pkt_param.params_ext_t.flash_addr_LSB = to;
-	pkt_param.params_ext_t.buff_length = len;
+	params_ext->flash_addr_LSB = to;
+	params_ext->buff_length = len;
 
 	/* write packet headers */
-	lattice_qspi_set_pkt_hdr(priv, this_qspi_pkt);
+	lattice_qspi_set_pkt_hdr(priv, params_ext);
 
 	/* interrupt enable */
 	writel(WR_INT_EN_VAL, &regs->int_en);
 
-	for (i = 0; i < len/4; i+=2)
-	{
+	for (i = 0; i < len / 4; i += 2) {
 		count -= 2;
 
 		/* write the data */
-		writel(*(write_buffer+i), &regs->packet_data_0);
+		writel(*(write_buffer + i), &regs->packet_data_0);
 		debug("packet_data_0 = %x\n", regs->packet_data_0);
-		writel(*(write_buffer+i+1), &regs->packet_data_1);
+		writel(*(write_buffer + i + 1), &regs->packet_data_1);
 		debug("packet_data_1 = %x\n", regs->packet_data_1);
 
 		/* start transfer */
@@ -528,12 +526,16 @@ static void lattice_qspi_write_xfer(struct mtd_info *mtd, loff_t to, size_t len,
 		/* check the transaction status */
 		//while ((readl(&regs->trans_status) & 0x1) != TRANS_STS);
 
-		/* check the interrupt
-		0x0 - new data can be written
-		0x1 - data can be transmitted */
+		/*
+		 * check the interrupt
+		 * 0x0 - new data can be written
+		 * 0x1 - data can be transmitted
+		 */
 		if (count) {
-			while ((readl(&regs->int_status) & 0x1) == IRQ_WR_FIFO_DIS);
-			while (((readl(&regs->int_status) >> 1) & 0x1) == IRQ_WR_FIFO_DIS);
+			while ((readl(&regs->int_status) & 0x1) ==
+			       IRQ_WR_FIFO_DIS);
+			while (((readl(&regs->int_status) >> 1) & 0x1) ==
+			       IRQ_WR_FIFO_DIS);
 			/* clear the interrupt */
 			writel(CLR_INTERRUPT, &regs->int_status);
 		}
@@ -546,36 +548,36 @@ static void lattice_qspi_write_xfer(struct mtd_info *mtd, loff_t to, size_t len,
 	printf("transfer is done\n");
 }
 
-static int lattice_qspi_write_fifo_dis(struct mtd_info *mtd, loff_t to, size_t len,
-			     size_t *retlen, const u_char *buf)
+static int lattice_qspi_write_fifo_dis(struct mtd_info *mtd, loff_t to,
+				       size_t len, size_t *retlen,
+				       const u_char *buf)
 {
 	struct udevice *dev = mtd->dev;
 	struct lattice_qspi_priv *priv = dev_get_priv(dev);
 	struct lattice_qspi_regs *regs = priv->regs;
-	unsigned int *buffer = (unsigned int *) buf;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
+	u32 *buffer = (u32 *)buf;
 	int cycle, rem;
 
 	cycle = 0;
 	rem = 0;
 
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.with_payload = WITH_PAYLOAD_WR;
-	pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_WRITE_STD;
+	params_ext->cmd_lane_width = LANE_WIDTH_X1;
+	params_ext->with_payload = WITH_PAYLOAD_WR;
+	params_ext->flash_cmd_code = FLASH_CMD_CODE_WRITE_STD;
 
-	if (len >= QSPI_FW_WR_SIZE){
-		cycle = len/QSPI_FW_WR_SIZE;
-		rem = len%QSPI_FW_WR_SIZE;
-	}
-	else {
+	if (len >= QSPI_FW_WR_SIZE) {
+		cycle = len / QSPI_FW_WR_SIZE;
+		rem = len % QSPI_FW_WR_SIZE;
+	} else {
 		rem = len;
 	}
 
 	/* Performing read transaction */
-	while (cycle > 0)
-	{
+	while (cycle > 0) {
 		lattice_qspi_write_xfer(mtd, to, QSPI_FW_WR_SIZE, buffer);
 		to += QSPI_FW_WR_SIZE;
-		buffer += QSPI_FW_WR_SIZE/4;
+		buffer += QSPI_FW_WR_SIZE / 4;
 		cycle--;
 	}
 
@@ -585,7 +587,7 @@ static int lattice_qspi_write_fifo_dis(struct mtd_info *mtd, loff_t to, size_t l
 	/* disable interrupt */
 	writel(INT_DIS_VAL, &regs->int_en);
 	*retlen = len;
-	
+
 	return 0;
 }
 
@@ -594,36 +596,37 @@ static int lattice_qspi_erase(struct mtd_info *mtd, struct erase_info *instr)
 	struct udevice *dev = mtd->dev;
 	struct lattice_qspi_priv *priv = dev_get_priv(dev);
 	struct lattice_qspi_regs *regs = priv->regs;
-	qspi_params_t *this_qspi_pkt = &pkt_param;
+	struct qspi_params_ext_t *params_ext = &priv->params_ext;
 	size_t addr = instr->addr;
 	size_t len = instr->len;
 	size_t end = addr + len;
 
-	pkt_param.params_ext_t.data_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.addr_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.cmd_lane_width = LANE_WIDTH_X1;
-	pkt_param.params_ext_t.with_payload = WITH_PAYLOAD_RD;
-	pkt_param.params_ext_t.flash_cmd_code = FLASH_CMD_CODE_ERASE;
-	pkt_param.params_ext_t.num_wait_cycle = 0;
+	params_ext->data_lane_width = LANE_WIDTH_X1;
+	params_ext->addr_lane_width = LANE_WIDTH_X1;
+	params_ext->cmd_lane_width = LANE_WIDTH_X1;
+	params_ext->with_payload = WITH_PAYLOAD_RD;
+	params_ext->flash_cmd_code = FLASH_CMD_CODE_ERASE;
+	params_ext->num_wait_cycle = 0;
 
-	pkt_param.params_ext_t.flash_addr_LSB = addr;
-	pkt_param.params_ext_t.buff_length = 0;
+	params_ext->flash_addr_LSB = addr;
+	params_ext->buff_length = 0;
 
 	instr->state = MTD_ERASING;
 
 	while (addr < end) {
-		pkt_param.params_ext_t.flash_addr_LSB = addr;
+		params_ext->flash_addr_LSB = addr;
 		/* write packet headers */
-		lattice_qspi_set_pkt_hdr(priv, this_qspi_pkt);
+		lattice_qspi_set_pkt_hdr(priv, params_ext);
 
 		/* interrupt enable */
 		writel(INT_EN_VAL, &regs->int_en);
 
-		/* start transfer */	
+		/* start transfer */
 		writel(START_TRANS_VAL, &regs->start_trans);
 
 		/* check the transaction status */
-		while ((readl(&regs->trans_status) & 0x1) == TRANS_STS);
+		while ((readl(&regs->trans_status) & 0x1) ==
+		       TRANS_STS);
 		/* clear transaction */
 		writel(CLR_START_TRANS, &regs->start_trans);
 		addr += mtd->erasesize;
@@ -658,8 +661,8 @@ static int lattice_qspi_probe(struct udevice *dev)
 	mtd->_erase		= lattice_qspi_erase;
 	mtd->_read		= lattice_qspi_read_fifo_dis;
 	mtd->_write		= lattice_qspi_write_fifo_dis;
-	mtd->numeraseregions = 0;
-	mtd->erasesize = 0x10000;
+	mtd->numeraseregions	= 0;
+	mtd->erasesize		= 0x10000;
 	if (add_mtd_device(mtd))
 		return -ENOMEM;
 
@@ -667,10 +670,10 @@ static int lattice_qspi_probe(struct udevice *dev)
 	flash->size = mtd->size;
 	flash->sector_count = mtd->size / mtd->erasesize;
 
-#if defined(CONFIG_SPI_FLASH_MACRONIX)
+#if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 	/* Macronix flash ID */
 	flash->flash_id = 0xc2201a;
-#elif defined(CONFIG_SPI_FLASH_WINBOND)
+#elif CONFIG_IS_ENABLED(SPI_FLASH_WINBOND)
 	/* Winbond dlash ID */
 	flash->flash_id = 0xef4020;
 #endif
