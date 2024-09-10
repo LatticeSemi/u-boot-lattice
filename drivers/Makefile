@@ -54,6 +54,7 @@ obj-$(CONFIG_SPL_MPC8XXX_INIT_DDR) += ddr/fsl/
 obj-$(CONFIG_ARMADA_38X) += ddr/marvell/a38x/
 obj-$(CONFIG_ARMADA_XP) += ddr/marvell/axp/
 obj-$(CONFIG_$(SPL_)ALTERA_SDRAM) += ddr/altera/
+obj-$(CONFIG_$(SPL_)LATTICE_DDR) += ddr/lattice/
 obj-$(CONFIG_ARCH_IMX8M) += ddr/imx/imx8m/
 obj-$(CONFIG_IMX8ULP_DRAM) += ddr/imx/imx8ulp/
 obj-$(CONFIG_ARCH_IMX9) += ddr/imx/imx9/

@@ -1,0 +1,8 @@
+config SPL_LATTICE_DDR
+	bool "Lattice RISC-V LPDDR4 driver in SPL"
+	depends on SPL
+	depends on TARGET_LATTICE_RISCV_LFCPNX
+	select RAM if TARGET_LATTICE_RISCV_LFCPNX
+	select SPL_RAM if TARGET_LATTICE_RISCV_LFCPNX
+	help
+	  Enable LPDDR4 SDRAM controller for the Lattice RISC-V devices.
