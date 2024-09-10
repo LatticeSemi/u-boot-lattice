@@ -6,6 +6,7 @@
 
 #include <asm/io.h>
 #include <asm/system.h>
+#include <lattice/lpddr4_nexus.h>
 #include <linux/delay.h>
 #include <linux/iopoll.h>
 #include <spl.h>
@@ -15,14 +16,8 @@
 
 static void lpddr_init(void)
 {
-	void __iomem *reg = (void __iomem *)LPDDR4_CONTR_BASE_ADDR + 0x04;
-
-	/* Bringing LPDDR4 out of reset */
-	writel(LPDDR4_OUT_OF_RESET, reg);
-	reg = (void __iomem *)LPDDR4_CONTR_BASE_ADDR + 0x24;
-	while((readl(reg) & 0x000000FF) != 0x0000001F) {
-	}
-	printf("%s: reg_value: 0x%08x\n", __func__, readl(reg));
+	lpddr4 lpddr4_instance;
+	lpddr4_init(&lpddr4_instance, LPDDR4_CONTR_BASE_ADDR);
 }
 
 #if IS_ENABLED(CONFIG_SPL_LOAD_FIT)
