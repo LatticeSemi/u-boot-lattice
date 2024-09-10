@@ -1,4 +1,4 @@
-if TARGET_LATTICE_RISCV
+if TARGET_LATTICE_RISCV_LFCPNX
 
 config SYS_CPU
 	default "generic"

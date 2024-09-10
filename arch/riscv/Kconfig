@@ -45,7 +45,7 @@ config TARGET_TH1520_LPI4A
 config TARGET_XILINX_MBV
 	bool "Support AMD/Xilinx MicroBlaze V"
 
-config TARGET_LATTICE_RISCV
+config TARGET_LATTICE_RISCV_LFCPNX
 	bool "Support Lattice CPNX Board"
 
 endchoice
