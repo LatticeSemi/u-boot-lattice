@@ -96,10 +96,6 @@
 		compatible = "lattice,lattice-tse-1.5.0";
 		reg = <0x40001000 0x4000>;
 		sgdma_base = <0x40093000>;
-		mm2s_bd_address = <0x90010000>;
-		mm2s_address = <0x90000000>;
-		s2mm_bd_address = <0x90020000>;
-		s2mm_address = <0x90006000>;
 		status = "disabled";
 		bootph-pre-ram;
 	};
