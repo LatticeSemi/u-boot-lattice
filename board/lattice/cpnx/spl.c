@@ -16,7 +16,8 @@
 
 static void lpddr_init(void)
 {
-	lpddr4 lpddr4_instance;
+	struct lpddr4 lpddr4_instance;
+
 	lpddr4_init(&lpddr4_instance, LPDDR4_CONTR_BASE_ADDR);
 }
 
