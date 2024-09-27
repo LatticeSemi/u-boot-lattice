@@ -8,8 +8,6 @@
 
 #include <linux/bitops.h>
 
-#define SUCCESS						0
-#define FAILURE						1
 #define IPG_TIME					12
 #define MAX_PACKET_SIZE					1500
 #define SPEED_10_OR_100_MBPS				0

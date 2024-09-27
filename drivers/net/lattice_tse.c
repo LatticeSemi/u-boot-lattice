@@ -168,7 +168,6 @@ static int lattice_tse_send(struct udevice *dev, void *packet, int length)
 	unsigned int ret;
 	unsigned int status = 0;
 	u8 *write_packet = (u8 *)packet;
-	struct lattice_tse_plat *plat = dev_get_plat(dev);
 
 	for (i = 0; i <= length; i++)
 		mm2s_tx_data[i] = write_packet[i];
@@ -197,7 +196,6 @@ static int lattice_tse_recv(struct udevice *dev, int flags, uchar **packetp)
 	u32 ret;
 	unsigned short readbytes = 0;
 	unsigned int status = 0;
-	struct lattice_tse_plat *plat = dev_get_plat(dev);
 
 	ret = s2mm_buf_desc_dma(&sgdma_core);
 	if (ret == FAILURE) {
