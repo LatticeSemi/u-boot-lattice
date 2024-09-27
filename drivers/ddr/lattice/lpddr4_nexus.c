@@ -58,6 +58,7 @@ unsigned int lpddr4_read32(unsigned int base_address, unsigned int offset)
 enum LPDDR_RET lpddr4_init(struct lpddr4 *instance_ptr, unsigned int base_addr)
 {
 	enum LPDDR_RET ret = NO_FAIL;
+	int delay;
 	union status_reg_t sts_reg;
 	union clk_chng_t clk_chng_reg;
 
@@ -87,21 +88,28 @@ enum LPDDR_RET lpddr4_init(struct lpddr4 *instance_ptr, unsigned int base_addr)
 		sts_reg = (union status_reg_t)lpddr4_read32
 				(lpddr4_inst->lpddr4_base_address, STATUS_REG);
 		//printf("\r\nINFO:DDR status = %x\n", sts_reg);
-		if (sts_reg.status_fields.cbt_err == 1) {
-			printf("\r\nErr:LPDDR CBT_FAIL ocurred\n");
-			return CBT_FAIL;
-		}
-		if (sts_reg.status_fields.write_lvl_err == 1) {
-			printf("\r\nErr:LPDDR WR_LVL_FAIL ocurred\n");
-			return WR_LVL_FAIL;
-		}
-		if (sts_reg.status_fields.read_trn_err == 1) {
-			printf("\r\nErr:LPDDR RD_TRN_FAIL ocurred\n");
-			return RD_TRN_FAIL;
-		}
-		if (sts_reg.status_fields.write_trn_err == 1) {
-			printf("\r\nErr:LPDDR WR_TRN_FAIL ocurred\n");
-			return WR_TRN_FAIL;
+		if (sts_reg.status_fields.phy_ready == 1) {
+			if (sts_reg.status_fields.cbt_err == 1) {
+				printf("\r\nErr:LPDDR CBT_FAIL ocurred\n");
+				return CBT_FAIL;
+			}
+			if (sts_reg.status_fields.write_lvl_err == 1) {
+				printf("\r\nErr:LPDDR WR_LVL_FAIL ocurred\n");
+				return WR_LVL_FAIL;
+			}
+			if (sts_reg.status_fields.read_trn_err == 1) {
+				printf("\r\nErr:LPDDR RD_TRN_FAIL ocurred\n");
+				return RD_TRN_FAIL;
+			}
+			if (sts_reg.status_fields.write_trn_err == 1) {
+				printf("\r\nErr:LPDDR WR_TRN_FAIL ocurred\n");
+				return WR_TRN_FAIL;
+			}
+		} else {
+			/* Mandatory delay to sync with hardware training engine */
+			delay = TWO_US_DELAY;
+			while (--delay)
+				__asm__ __volatile__("nop");
 		}
 	}
 	printf("\r\nINFO: LPDDR4 training complete\r\n");

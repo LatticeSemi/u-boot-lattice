@@ -31,6 +31,7 @@
 #define LPDDR_ERR_DONE_BITS			(0x00000F1F)
 #define PLL_LOCK_BIT				(0x08U)
 #define TRN_EN					(0x5FU)
+#define TWO_US_DELAY				(200)
 
 struct lpddr4 {
 	unsigned int lpddr4_base_address;
