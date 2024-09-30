@@ -1,0 +1,40 @@
+========================================
+Documentation for U-Boot and SPL
+========================================
+This README is about U-Boot and SPL support for Lattice RISC-V-based
+FPGA platform.
+
+
+==============
+Links to GSRD:
+==============
+Documentation & GSRD Links - https://www.latticesemi.com/products/designsoftwareandip/intellectualproperty/referencedesigns/referencedesigns05/ghrd-gsrd-reference-design
+
+
+==============
+Pre-requisite:
+==============
+        1) For first-time setup, install the following on the Ubuntu Machine
+                $ sudo apt install bison flex python3-setuptools python3-pip swig
+                $ sudo apt-get install libncurses-dev
+                Install libssl-dev if there is openssl error:
+                $ sudo apt-get install libssl-dev
+        2) Install Lattice Propel for Linux
+
+
+============
+Build Steps:
+============
+        1) Git clone the repo:
+        git clone git@github.com/LatticeSemi/u-boot.git -b lattice_v2024.04
+
+        2) Set the env:
+        export PATH=$PATH:<local_path>/lscc/propel/<version>/sdk/riscv-none-embed-gcc/bin
+        export CROSS_COMPILE="riscv-none-embed-"
+        export ARCH=riscv
+
+        3) Clean build u-boot:
+        make clean && make mrproper && make lattice_riscv_defconfig
+
+        4) Build u-boot:
+        make -j8
