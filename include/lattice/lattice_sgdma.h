@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+
  *
- * (C) Copyright 2019-2024 by Lattice Semiconductor Corporation
+ * Copyright (C) 2024 Lattice Semiconductor Corporation
  */
 
 #ifndef SGDMA_H_

@@ -3,10 +3,8 @@
  * (C) Copyright 2000-2004
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * (C) Copyright 2011
- * Texas Instruments, <www.ti.com>
- *
- * Matt Porter <mporter@ti.com>
+ * Copyright (C) 2024 by Lattice Semiconductor Corporation
+ * <www.latticesemi.com>
  */
 #include <common.h>
 #include <gzip.h>
@@ -27,7 +25,7 @@ static struct mtd_info *get_mtd_dev_by_name(const char *name)
 {
 	struct mtd_info *mtd;
 
-	mtd_probe_devices();
+	//mtd_probe_devices();
 	mtd_probe_devices();
 
 	mtd = get_mtd_device_nm(name);
