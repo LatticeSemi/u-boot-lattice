@@ -26,7 +26,7 @@ Pre-requisite:
 Build Steps:
 ============
         1) Git clone the repo:
-        git clone git@github.com/LatticeSemi/u-boot.git -b lattice_v2024.04
+        git clone git@git@github.com:LatticeSemi/u-boot-lattice.git -b lattice_v2024.04
 
         2) Set the env:
         export PATH=$PATH:<local_path>/lscc/propel/<version>/sdk/riscv-none-embed-gcc/bin
